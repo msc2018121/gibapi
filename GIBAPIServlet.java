@@ -35,14 +35,22 @@ public class GIBAPIServlet extends HttpServlet {
 		response.getWriter().append("{\"Time\":\"" + LocalTime.now() + "\",\"name\":\"top\",\"jso2s\":[");
 		long startTime = System.currentTimeMillis();
 		int i = 1;
-		if ("2".equals(size)) {
+		if ("0.25".equals(size)) {
+			response.getWriter().append(S0_25Mb.S0_25_MB);
+		} else if ("0.5".equals(size)) {
+			response.getWriter().append(S0_5Mb.S0_5_MB);
+		} else if ("1".equals(size)) {
+			response.getWriter().append(S1Mb.ONE_MB);
+		} else if ("1.5".equals(size)) {
+			response.getWriter().append(S1_5Mb.S1_5_MB);
+		} else if ("2".equals(size)) {
 			response.getWriter().append(S2Mb.TWO_MB);
 		} else if ("5".equals(size)) {
 			response.getWriter().append(S5Mb.FIVE_MB);
 		} else if ("10".equals(size)) {
 			response.getWriter().append(S10Mb.TEN_MB);
 		} else if ("20".equals(size)) {
-			i=2;
+			i = 2;
 		} else if ("30".equals(size)) {
 			i = 3;
 		} else if ("40".equals(size)) {
@@ -64,7 +72,7 @@ public class GIBAPIServlet extends HttpServlet {
 
 		if (i > 1) {
 			for (int j = 0; j < i; j++) {
-				if (j > 0) //not 1st
+				if (j > 0) // not 1st
 					response.getWriter().append(",");
 				response.getWriter().append(S10Mb.TEN_MB);
 			}
