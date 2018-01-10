@@ -35,7 +35,11 @@ public class GIBAPIServlet extends HttpServlet {
 		response.getWriter().append("{\"Time\":\"" + LocalTime.now() + "\",\"name\":\"top\",\"jso2s\":[");
 		long startTime = System.currentTimeMillis();
 		int i = 1;
-		if ("0.25".equals(size)) {
+		if ("6KB".equals(size)) {
+			response.getWriter().append(SixKB.SIXKB);
+		} else if ("30KB".equals(size)) {
+			response.getWriter().append(ThirtyKB.THIRTYKB);
+		} else if ("0.25".equals(size)) {
 			response.getWriter().append(S0_25Mb.S0_25_MB);
 		} else if ("0.5".equals(size)) {
 			response.getWriter().append(S0_5Mb.S0_5_MB);
