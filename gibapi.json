@@ -1,0 +1,25 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "A Simple IP Address API",
+    "title": "ipify",
+    "version": "v1"
+  },
+  "host": "externalgibapi.azurewebsites.net",
+  "schemes": [
+    "https"
+  ],
+  "basePath": "/gibapi/v1",
+  "paths": {
+    "/time": {
+      "get": {
+        "summary": "Get time",
+        "responses": {
+          "200": {
+            "description": "Success response"
+          }
+        }
+      }
+    }
+  }
+}
