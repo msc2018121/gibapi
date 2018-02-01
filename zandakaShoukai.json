@@ -1,0 +1,359 @@
+﻿{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "残高照会",
+    "license": {
+      "name": "",
+      "url": ""
+    },
+    "description": "以下の方法により当APIを試行することが可能です。\n\n　①開発者ポータル（当画面）でのボタン操作\n\n　②各事業者様にてご用意いただいたアプリやツールを使用\n\n\n<B><span style=\"color: red;\">\n※当API試行環境において、認証・認可スキームは実装しておりません。\n</span></B>\n\n\n<B><span style=\"color: red;\">\n※アクセス先は、画面右側（黒背景）に記載の「要求の例」をご確認ください。\n</span></B>\n\n\n概要\n\n\n指定した口座の残高（当日残高、前日残高、前月末残高）を照会します。\n<br>\n### 1) 照会可能な口座\n\n　利用コース添付「テスト用ダミーデータ一覧」記載の口座のみ指定できます。<br>\n　以外の口座を照会した場合は、エラーとなります。\n\n### 2) 照会可能な科目\n\n　普通預金（含む、ビジネスカードローン(BCL)  以下「普通預金」で省略）、当座預金、通知預金、定期預金 です。\n\n### 3) 取得できる内容\n\n　照会する科目により、取得できる内容に差異があります。下記をご参照ください。\n\n　　【表－１】残高照会：科目ごとの相違点\n\n| 差異がある科目 | 普通預金 | 当座預金 | 定期預金 | 通知預金 |\n| :--- | :---: | :---: | :---: | :---: |\n|残高|○|○|○|○|\n|資金化残高|○|○|×|×|\n|前日残高|○|○|×|×|\n|前月末残高|○|○|×|×|\n\n　　【凡例】　○：照会できる項目　　　　×：照会できない項目\n\n<B>備考</B>\n\n### 1) 当APIにはクエリを使用したパラメータはありません。",
+    "x-ibm-name": "account_trial"
+  },
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/accounts/{account_id}": {
+      "x-swagger-router-controller": "AccountController",
+      "get": {
+        "tags": [],
+        "summary": "",
+        "description": "",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "X-BTMU-Seq-No",
+            "type": "string",
+            "required": true,
+            "in": "header",
+            "description": "シーケンスNo<br>API実行を一意に識別できるNo<br>Nullデータ指定 不可<br>YYYYMMDD-[16桁の英数字(*1)] (*1)YYYYMMDD内で、重複しない値",
+            "minLength": 1,
+            "maxLength": 25
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "口座ID<br>照会したい口座を特定するID 店番(3桁) + 科目コード(1桁） + 口座番号(7桁)<br>Nullデータ指定 不可<br>科目コードには以下の値を指定してください。<br>1：普通\t(含む、ビジネスカードローン(BCL))<br>2：当座<br>5：通知<br>6：定期",
+            "required": true,
+            "type": "string",
+            "minLength": 11,
+            "maxLength": 11
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "正常終了<br>レスポンス内容は、口座オブジェクトをご参照ください。<br>口座情報オブジェクト<br>Nullデータの返却 なし",
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          },
+          "default": {
+            "description": "異常終了<br>エラーオブジェクト<br>Nullデータの返却 なし",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "OAuth2": {
+      "type": "oauth2",
+      "description": "",
+      "flow": "accessCode",
+      "authorizationUrl": "https://developer.api.bk.mufg.jp/btmu/corporation/oauth2/authorize",
+      "scopes": {
+        "corporation:inquiry": "基本リソース（残高照会・入出金明細・振込入金明細）"
+      },
+      "tokenUrl": "https://developer.api.bk.mufg.jp/btmu/corporation/oauth2/token"
+    },
+    "clientIdHeader": {
+      "type": "apiKey",
+      "description": "クライアントID\n\nAPI利用事業者を識別するＩＤ\n\nheader で必須\n\nstring\n\n36桁以内\n\n[備考]　X-IBM-Client-Id: （クライアントID文字列）",
+      "in": "header",
+      "name": "X-IBM-Client-Id"
+    }
+  },
+  "security": [
+    {
+      "clientIdHeader": []
+    }
+  ],
+  "definitions": {
+    "Account": {
+      "description": "口座情報オブジェクト\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|支店番号|branchNo|照会した口座の支店番号|なし|半角数字|\n|支店名|branchName|照会した口座の支店名|なし|すべて全角文字|\n|科目コード|accountTypeCode|照会した口座の科目コード|なし|1：普通、2：当座、5：通知、6：定期<br>※ビジネスカードローン（BCL）の場合は、1：普通|\n|科目名|accountTypeName|照会した口座の科目名|なし|”普通”、”当座”、”通知”、”定期”、”BCL”<br>※ビジネスカードローン（BCL）の場合はBCL|\n|口座番号|accountNo|照会した口座の口座番号|なし|半角数字|\n|口座名義（漢字）|accountNameKanji|照会した口座の口座名義|なし|すべて全角文字|\n|口座名義（カナ）|accountNameKana|照会した口座の口座名義|なし|全角数字、全角英字、全角カナ、許容記号1(※2)|\n|操作日|operationDate|リクエストを受け付けた日付|なし|YYYY-MM-DD形式|\n|操作時刻|operationTime|リクエストを受け付けた時刻|なし|HH:MM:SS形式|\n|当日残高|todayBalance|照会当日の残高|なし|-999999999999～999999999999|\n|資金化残高|clearedBalance|照会当日の資金化残高|(※1)|-999999999999～999999999999|\n|前日残高基準日|previousDate|前日残高の基準日|(※1)|YYYY-MM-DD形式|\n|前日残高|previousDayBalance|前日の残高|(※1)|-999999999999～999999999999|\n|前月末残高基準日|previousMonthEndDate|前月末の基準日|(※1)|YYYY-MM-DD形式|\n|前月末残高|previousMonthEndBalance|前月末の残高|(※1)|-999999999999～999999999999|\n\n\n(※1)照会した口座が定期預金または通知預金の場合、キー・値ともに返却しません。\n\n(※2)￥「」（）／＊＆＄，．＠＝％＋；スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)の計21文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。",
+      "type": "object",
+      "properties": {
+        "branchNo": {
+          "type": "string",
+          "description": "支店番号",
+          "example": "123",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "branchName": {
+          "type": "string",
+          "description": "支店名",
+          "example": "渋谷中央",
+          "minLength": 1,
+          "maxLength": 15
+        },
+        "accountTypeCode": {
+          "type": "string",
+          "description": "科目コード（1：普通、2：当座、5：通知、6：定期）",
+          "example": 2,
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "accountTypeName": {
+          "type": "string",
+          "description": "科目名",
+          "example": "当座",
+          "minLength": 1,
+          "maxLength": 8
+        },
+        "accountNo": {
+          "type": "string",
+          "description": "口座番号",
+          "example": "1234567",
+          "minLength": 7,
+          "maxLength": 7
+        },
+        "accountNameKanji": {
+          "description": "口座名義（漢字）",
+          "type": "string",
+          "example": "エジソン商事",
+          "minLength": 1,
+          "maxLength": 71
+        },
+        "accountNameKana": {
+          "description": "口座名義（カナ）",
+          "type": "string",
+          "example": "エジソンショウジ",
+          "minLength": 1,
+          "maxLength": 71
+        },
+        "operationDate": {
+          "description": "操作日",
+          "type": "string",
+          "example": "2016-07-15",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "operationTime": {
+          "description": "操作時刻",
+          "type": "string",
+          "example": "01:23:40",
+          "minLength": 8,
+          "maxLength": 8
+        },
+        "todayBalance": {
+          "description": "当日残高",
+          "type": "integer",
+          "example": 8000000,
+          "format": "int64",
+          "minimum": -999999999999,
+          "maximum": 9999999999999
+        },
+        "clearedBalance": {
+          "description": "資金化残高",
+          "type": "integer",
+          "example": 8000000,
+          "format": "int64",
+          "minimum": -999999999999,
+          "maximum": 9999999999999
+        },
+        "previousDate": {
+          "description": "前日残高基準日",
+          "type": "string",
+          "example": "2016-07-15",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "previousDayBalance": {
+          "description": "前日残高",
+          "type": "integer",
+          "example": 8000000,
+          "format": "int64",
+          "minimum": -999999999999,
+          "maximum": 9999999999999
+        },
+        "previousMonthEndDate": {
+          "description": "前月末残高基準日",
+          "type": "string",
+          "example": "2016-07-15",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "previousMonthEndBalance": {
+          "description": "前月末残高",
+          "type": "integer",
+          "example": 8000000,
+          "format": "int64",
+          "minimum": -999999999999,
+          "maximum": 9999999999999
+        }
+      }
+    },
+    "ErrorResponse": {
+      "description": "エラーレスポンスオブジェクト\n\n|日本語名|英字名|説明|Nullデータ|\n|---|---|---|---|\n|ステータスコード|status|ステータスコード|(※1)|\n|メッセージ|message|ステータスコードに紐づくメッセージ|(※1)|\n|エラーコード|code|エラーコード|(※1)|\n|開発者向け詳細メッセージ|developer_message|開発者向けの詳細メッセージ|(※1)|\n\n|日本語名|英字名|説明|Nullデータ|\n|---|---|---|---|\n|httpステータスコード|httpCode|httpステータスコードと同値|(※1)|\n|httpステータスメッセージ|httpMessage|httpステータスコードの文字列|(※1)|\n|詳細メッセージ|moreInformation|開発者向けの詳細メッセージ|(※1)|\n\n\n|日本語名|英字名|説明|Nullデータ|\n|---|---|---|---|\n|エラー種別|error|エラーの種別を表す文字列|(※1)|\n|詳細メッセージ|error_description|開発者向けの詳細メッセージ|(※1)|\n\n\n\n(※1) 該当項目にて返却するデータがない場合、キー・値ともに返却しません",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "ステータスコード",
+          "type": "integer",
+          "format": "int32",
+          "example": 400,
+          "minimum": 100,
+          "maximum": 999
+        },
+        "message": {
+          "description": "ステータスコードに紐づくメッセージ",
+          "type": "string",
+          "example": "不正なパラメータ"
+        },
+        "code": {
+          "description": "エラーコード",
+          "type": "string",
+          "example": "ERR006"
+        },
+        "developer_message": {
+          "description": "開発者向け詳細メッセージ",
+          "type": "string",
+          "example": "指定した口座からは振込できません。"
+        },
+        "httpCode": {
+          "description": "httpステータスコード(httpステータスコードと同値)",
+          "type": "string",
+          "example": 404
+        },
+        "httpMessage": {
+          "description": "httpステータスメッセージ(httpステータスコードの文字列)",
+          "type": "string",
+          "example": "Not Found"
+        },
+        "moreInformation": {
+          "description": "詳細メッセージ(開発者向けの詳細メッセージ)",
+          "type": "string",
+          "example": "No resources match requested URI"
+        },
+        "error": {
+          "description": "エラー種別(エラーの種別を表す文字列)",
+          "type": "string",
+          "example": "invalid_grant"
+        },
+        "error_description": {
+          "description": "詳細メッセージ(開発者向けの詳細メッセージ)",
+          "type": "string",
+          "example": "client_id unauthorized"
+        }
+      }
+    },
+    "TKN_MNG": {
+      "properties": {
+        "CLID_UID_BRCD_SBCD_ACNO": {
+          "description": "クライアントID＋支店番号＋科目コード＋口座番号",
+          "type": "string"
+        },
+        "CLIENTID": {
+          "description": "ライアントID",
+          "type": "string"
+        },
+        "USERID": {
+          "description": "契約者番号",
+          "type": "string"
+        },
+        "BRCOFC_CD": {
+          "description": "支店ｺｰﾄﾞ",
+          "type": "string"
+        },
+        "BRCOFC_NM": {
+          "description": "支店名（漢字）",
+          "type": "string"
+        },
+        "SUB_CD": {
+          "description": "科目ｺｰﾄﾞ",
+          "type": "string"
+        },
+        "SUB_NM": {
+          "description": "科目名称",
+          "type": "string"
+        },
+        "ACNT_NO": {
+          "description": "口座番号",
+          "type": "string"
+        },
+        "CTM_PSNM": {
+          "description": "口座名儀（ｶﾅ）",
+          "type": "string"
+        },
+        "CTM_NM": {
+          "description": "口座名義（漢字）",
+          "type": "string"
+        },
+        "DPST_LDGR_BLNC": {
+          "description": "口座残高",
+          "type": "number",
+          "format": "double"
+        },
+        "FD_BLNC": {
+          "description": "資金化残高",
+          "type": "number",
+          "format": "double"
+        },
+        "TDB_TRDT": {
+          "description": "前日基準日",
+          "type": "string",
+          "format": "date"
+        },
+        "DB_DPST_LDGR_BLNC": {
+          "description": "前日残高",
+          "type": "number",
+          "format": "double"
+        },
+        "BTE_TRDT": {
+          "description": "前月末基準日",
+          "type": "string",
+          "format": "date"
+        },
+        "TEPM_DPST_LDGR_BLNC": {
+          "description": "前月末残高",
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "CLID_UID_BRCD_SBCD_ACNO",
+        "BRCOFC_CD",
+        "SUB_CD",
+        "ACNT_NO"
+      ],
+      "additionalProperties": false,
+      "description": "口座管理テーブル接続用定義"
+    }
+  },
+  "x-ibm-configuration": {
+    "enforced": true,
+    "testable": true,
+    "phase": "realized"
+  },
+  "basePath": "/btmu/corporation/trial/v1",
+  "x-ibm-endpoints": [
+    {
+      "endpointUrl": "https://developer.api.bk.mufg.jp",
+      "description": "Custom Gateway API Endpoint",
+      "type": [
+        "production",
+        "development"
+      ]
+    }
+  ]
+}
