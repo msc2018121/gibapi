@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "A Simple IP Address API",
-    "title": "ipify",
+    "description": "Time API",
+    "title": "Time API",
     "version": "v1"
   },
   "host": "externalgibapi.azurewebsites.net",
