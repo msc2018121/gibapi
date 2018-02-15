@@ -1,0 +1,798 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "振込申請",
+    "description": "以下の方法により当APIを試行することが可能です。\n\n　①開発者ポータル（当画面）でのボタン操作\n\n　②各事業者様にてご用意いただいたアプリやツールを使用\n\n\n<B><span style=\"color: red;\">\n※当API試行環境において、認証・認可スキームは実装しておりません。\n</span></B>\n\n\n<B><span style=\"color: red;\">\n※アクセス先は、画面右側（黒背景）に記載の「要求の例」をご確認ください。\n</span></B>\n\n\n概要\n\n\nBizSTATIONに登録したサービス指定口座から、任意の口座への振込を申請します。\n<br>\n### 1)引落口座として指定可能な口座\n\n　利用コース添付「テスト用ダミーデータ一覧」記載の口座のみ、引落口座として指定できます。<br>\n　以外の口座を指定した場合は、エラーとなります。\n\n### 2)利用可能な科目\n\n　普通預金（含む、ビジネスカードローン（BCL））、当座預金です。\n\n### 3)振込の単位\n\n　1明細単位の振込申請が可能です。複数明細の一括振込申請はできません。\n\n### 4)レスポンスに含まれる口座名義人について\n\n　口座確認の結果に関わらず、レスポンス項目の「口座名義人（漢字）」「口座名義人（カナ）」はリクエストの値そのまま返却します。<br>\n　金融機関コード、支店番号、科目、口座番号が合致した場合は、振込申請を受付しますが、<br>\n　口座名義人（漢字）、口座名義人（カナ）が誤っていた場合であっても、その旨を通知しませんのでご注意ください。",
+    "x-ibm-name": "transfer_trial"
+  },
+  "basePath": "/btmu/corporation/trial/v1",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/me/transfers": {
+      "x-swagger-router-controller": "TransferController",
+      "post": {
+        "tags": [],
+        "summary": "",
+        "description": "",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "X-BTMU-Seq-No",
+            "type": "string",
+            "required": true,
+            "in": "header",
+            "description": "シーケンスNo<br>API実行を一意に識別できるNo<br>Nullデータ指定 不可<br>YYYYMMDD-[16桁の英数字(*1)] (*1)YYYYMMDD内で、重複しない値",
+            "minLength": 1,
+            "maxLength": 25
+          },
+          {
+            "name": "CreateTransfer",
+            "in": "body",
+            "description": "振込振替申請リクエストオブジェクト<br>振込申請の情報<br>Nullデータ指定 不可",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateTransfer"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "正常終了<br>レスポンス内容は、振込申請レスポンスオブジェクトをご参照ください。<br>振込申請レスポンスオブジェクト<br>Nullデータの返却 なし",
+            "schema": {
+              "$ref": "#/definitions/Transfer"
+            }
+          },
+          "default": {
+            "description": "異常終了<br>エラーオブジェクト<br>Nullデータの返却 なし",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "OAuth2": {
+      "type": "oauth2",
+      "description": "",
+      "flow": "accessCode",
+      "authorizationUrl": "https://developer.api.bk.mufg.jp/btmu/corporation/oauth2/authorize",
+      "scopes": {
+        "corporation:transfer": "振込関連リソース（振込申請）"
+      },
+      "tokenUrl": "https://developer.api.bk.mufg.jp/btmu/corporation/oauth2/token"
+    },
+    "clientIdHeader": {
+      "type": "apiKey",
+      "description": "クライアントID\n\nAPI利用事業者を識別するＩＤ\n\nheader で必須\n\nstring\n\n36桁以内\n\n[備考]　X-IBM-Client-Id: （クライアントID文字列）",
+      "in": "header",
+      "name": "X-IBM-Client-Id"
+    }
+  },
+  "security": [
+    {
+      "clientIdHeader": []
+    }
+  ],
+  "definitions": {
+    "CreateTransfer": {
+      "properties": {
+        "debitAccountInfo": {
+          "description": "引落口座情報",
+          "example": "",
+          "$ref": "#/definitions/DebitAccountRequestInfo"
+        },
+        "applicantName": {
+          "type": "string",
+          "description": "依頼人名",
+          "example": "エジソンショウジ",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "振込指定日",
+          "example": "2016-07-15",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "beneficiaryCode1": {
+          "type": "string",
+          "description": "振込先コード1",
+          "example": "Ａ００１",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "beneficiaryCode2": {
+          "type": "string",
+          "description": "振込先コード2",
+          "example": "Ａ００１",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "beneficiaryInfo": {
+          "description": "振込先口座情報",
+          "example": "",
+          "$ref": "#/definitions/BeneficiaryAccountReqestInfo"
+        },
+        "notes": {
+          "type": "string",
+          "description": "振込メモ",
+          "example": "振込メモは３２文字まで入力可能",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "enteredAmount": {
+          "type": "integer",
+          "description": "入力金額",
+          "example": 8000000,
+          "format": "int64",
+          "minimum": 0,
+          "maximum": 9999999999
+        },
+        "chargesPaidBy": {
+          "type": "string",
+          "description": "手数料負担区分（1：当方負担、2：相手先負担）",
+          "example": "1",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "paymentApplicantNo": {
+          "type": "string",
+          "description": "振込依頼人番号",
+          "example": "1234567890",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "ediInfo": {
+          "type": "string",
+          "description": "EDI情報",
+          "example": "ＥＤＩ１２３４５６７８９０",
+          "minLength": 1,
+          "maxLength": 20
+        }
+      },
+      "additionalProperties": false,
+      "description": "振込申請リクエストオブジェクト\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|引落口座情報|debitAccountInfo|引落元となる口座情報|不可| |\n| 依頼人名 | applicantName | 振込の依頼人名 | (※1) | 全角数字、全角英字、全角カナ、許容記号1(※2) |\n|振込指定日|paymentDate|振込の指定日|不可|YYYY-MM-DD形式|\n|振込先コード1|beneficiaryCode1|振込先を識別するための会社コードや社員番号等の任意の文字列|(※1)|全角数字、全角英字、全角カナ、許容記号2(※3)|\n|振込先コード2|beneficiaryCode2|振込先を識別するための会社コードや社員番号等の任意の文字列|(※1)|全角数字、全角英字、全角カナ、許容記号2(※3)|\n|振込先口座情報|beneficiaryInfo|振込先となる口座情報|不可||\n|振込メモ|notes|振込時のメモ|(※1)|全角文字すべて|\n|入力金額|enteredAmount|振込金額|不可|0～999999999999|\n|手数料負担区分|chargesPaidBy|振込手数料の負担先を識別するコード|不可|1：当方負担、2：相手先負担|\n|振込依頼人番号|paymentApplicantNo|振込先を識別するための任意の文字列|(※1)<br>(※4)|半角数字 \"^(\\\\d{0,10})$\"<br>または全角数字|\n|EDI情報|ediInfo|振込先を識別するための任意の文字列|(※1)<br>(※4)|全角数字、全角英字、全角カナ、許容記号2(※3) |\n\n\n(※1) 値を設定しない場合は、キー・値自体を設定しないでください。\n\n　　　\"Key\"：\"Null\"　の指定はできません。\n\n(※2) ￥「」（）／＊＆＄，．＠＝％＋；スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)\n\n　　の計21文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。\n\n(※3) ￥「」（）／．スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)\n\n　　の計12文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。\n\n(※4) 振込依頼人番号とEDI情報は相関チェックを行っており、両方の値がセットされている（Nullまたはブランクでない）場合、エラーとする",
+      "required": [
+        "paymentDate",
+        "enteredAmount",
+        "chargesPaidBy"
+      ]
+    },
+    "DebitAccountRequestInfo": {
+      "properties": {
+        "debitAccountBranchNo": {
+          "type": "string",
+          "description": "引落口座 支店番号",
+          "example": "001",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "debitAccountTypeCode": {
+          "type": "string",
+          "description": "引落口座 科目コード（1：普通、2：当座、5：通知、6：定期）",
+          "example": "1",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "debitAccountNo": {
+          "type": "string",
+          "description": "引落口座 口座番号",
+          "example": "1111111",
+          "minLength": 7,
+          "maxLength": 7
+        }
+      },
+      "additionalProperties": false,
+      "description": "引落口座リクエスト情報\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|引落口座　支店番号|debitAccountBranchNo|引落元となる口座の支店番号|不可|半角数字 \"^(\\\\d{3})$\"|\n|引落口座　科目コード|debitAccountTypeCode|引落元となる口座の科目コード|不可|1：普通（含む、ビジネスカードローン(BCL)）、2：当座|\n|引落口座　口座番号|debitAccountNo|引落元となる口座の口座番号|不可|半角数字 \"^(\\\\d{7})$\"|",
+      "required": [
+        "debitAccountBranchNo",
+        "debitAccountTypeCode",
+        "debitAccountNo"
+      ]
+    },
+    "BeneficiaryAccountReqestInfo": {
+      "properties": {
+        "beneficiaryAccountFinancialInstitutionNo": {
+          "type": "string",
+          "description": "振込先 金融機関番号",
+          "example": "0005",
+          "minLength": 4,
+          "maxLength": 4
+        },
+        "beneficiaryAccountBranchNo": {
+          "type": "string",
+          "description": "振込先 支店番号",
+          "example": "123",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "beneficiaryAccountTypeCode": {
+          "type": "string",
+          "description": "振込先 科目コード（1：普通、2：当座、4：貯蓄、5：通知、6：定期、9：その他）",
+          "example": "2",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "beneficiaryAccountNo": {
+          "type": "string",
+          "description": "振込先 口座番号",
+          "example": "1234567",
+          "minLength": 1,
+          "maxLength": 7
+        },
+        "beneficiaryAccountNameKanji": {
+          "type": "string",
+          "description": "振込先 口座名義(漢字)",
+          "example": "銀座利用者０７",
+          "minLength": 1,
+          "maxLength": 25
+        },
+        "beneficiaryAccountNameKana": {
+          "type": "string",
+          "description": "振込先 口座名義(カナ)",
+          "example": "ギンザリヨウシャ０７",
+          "minLength": 1,
+          "maxLength": 48
+        }
+      },
+      "additionalProperties": false,
+      "description": "振込先口座リクエスト情報オブジェクト\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|振込先　金融機関番号|beneficiaryAccountFinancialInstitutionNo|振込先の金融機関情報|不可|半角数字 \"^(\\\\d{4})$\"<br>または全角数字|\n|振込先　支店番号|beneficiaryAccountBranchNo|振込先の支店番号|不可|半角数字 \"^(\\\\d{3})$\"<br>または全角数字|\n|振込先　科目コード|beneficiaryAccountTypeCode|振込先の科目コード|不可|1：普通、2：当座、4：貯蓄、9：その他|\n|振込先　口座番号|beneficiaryAccountNo|振込先の口座番号|不可|半角数字 \"^(\\\\d{7})$\"<br>または全角数字。<br>※7桁未満の口座番号を指定した際は、以下のとおりとなります。<br>◆当行宛の場合<br>　BizSTATION側で先頭ゼロ詰めを行い7桁に揃え、振込申請処理を行う。<br>　　例：\"12345\"→\"0012345\"に補正<br>◆他行宛の場合<br>　BizSTATION側ではゼロ詰めは行わず、そのまま振込申請を行う<br>　　例：\"34567\"→\"34567\"　（補正なし）|\n|振込先　口座名義（漢字）|beneficiaryAccountNameKanji|振込先の口座名義|(※1)|全角文字すべて|\n|振込先　口座名義（カナ）|beneficiaryAccountNameKana|振込先の口座名義|(※1)|全角数字、全角英字、全角カナ、許容記号1(※2)|\n\n(※1) 値を設定しない場合は、キー・値自体を設定しないでください。\n\n　　　\"Key\"：\"Null\"　の指定はできません。\n\n(※2) ￥「」（）／＊＆＄，．＠＝％＋；スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)\n\n　　の計21文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。",
+      "required": [
+        "beneficiaryAccountNo",
+        "beneficiaryAccountTypeCode",
+        "beneficiaryAccountBranchNo",
+        "beneficiaryAccountFinancialInstitutionNo"
+      ]
+    },
+    "Transfer": {
+      "properties": {
+        "debitAccountInfo": {
+          "description": "引落口座情報",
+          "example": "",
+          "$ref": "#/definitions/DebitAccountResponseInfo"
+        },
+        "applicantName": {
+          "type": "string",
+          "description": "依頼人名",
+          "example": "エジソンショウジ",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "振込指定日",
+          "example": "2016-07-15",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "beneficiaryCode1": {
+          "type": "string",
+          "description": "振込先コード1",
+          "example": "Ａ００１",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "beneficiaryCode2": {
+          "type": "string",
+          "description": "振込先コード2",
+          "example": "Ａ００１",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "beneficiaryInfo": {
+          "description": "振込先口座情報",
+          "example": "",
+          "$ref": "#/definitions/BeneficiaryAccountResponseInfo"
+        },
+        "notes": {
+          "type": "string",
+          "description": "振込メモ",
+          "example": "振込メモは３２文字まで入力可能",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "enteredAmount": {
+          "type": "integer",
+          "description": "入力金額",
+          "format": "int64",
+          "example": 8000000,
+          "minimum": 0,
+          "maximum": 9999999999
+        },
+        "paymentAmount": {
+          "type": "integer",
+          "description": "振込金額",
+          "format": "int64",
+          "example": 8000000,
+          "minimum": 0,
+          "maximum": 9999999999
+        },
+        "paymentCharge": {
+          "type": "integer",
+          "description": "振込手数料（銀行宛支払手数料）",
+          "format": "int64",
+          "example": 8000000,
+          "minimum": 0,
+          "maximum": 9999999
+        },
+        "chargesPaidBy": {
+          "type": "string",
+          "description": "手数料負担区分（1：当方負担、2：相手先負担）",
+          "example": "1",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "chargeToBeneficiary": {
+          "type": "integer",
+          "description": "先方負担手数料",
+          "example": 8000000,
+          "format": "int64",
+          "minimum": 0,
+          "maximum": 9999999999
+        },
+        "paymentApplicantNo": {
+          "type": "string",
+          "description": "振込依頼人番号",
+          "example": "1234567890",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "ediInfo": {
+          "type": "string",
+          "description": "EDI情報",
+          "example": "ＥＤＩ１２３４５６７８９０",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "transferId": {
+          "type": "string",
+          "description": "振込ID",
+          "example": "101234567820160901000101",
+          "minLength": 1,
+          "maxLength": 24
+        },
+        "status": {
+          "type": "string",
+          "description": "ステータス",
+          "example": "booking：申請中"
+        }
+      },
+      "additionalProperties": false,
+      "description": "振込申請レスポンスオブジェクト\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|引落口座オブジェクト|debitAccountInfo|引落元となる口座情報|なし||\n|依頼人名|applicantName|振込の依頼人名|なし|全角数字、全角英字、全角カナ、許容記号1(※2)<br>◆リクエストの依頼人名を指定した場合は、その値を返却する。<br>◆リクエストの依頼人名を指定しなかった場合は、BizSTATIONのサービス指定口座の値を返却する。|\n|振込指定日|paymentDate|振込の指定日|なし|YYYY-MM-DD形式|\n|振込先コード1|beneficiaryCode1|振込先を識別するための会社コードや社員番号等任意の文字列|(※1)|全角数字、全角英字、全角カナ、許容記号2(※3)<br>※リクエストで指定した場合のみ、リクエスト時の値をそのまま返却する。|\n|振込先コード2|beneficiaryCode2|振込先を識別するための会社コードや社員番号等任意の文字列|(※1)|全角数字、全角英字、全角カナ、許容記号2(※3)<br>※リクエストで指定した場合のみ、リクエスト時の値をそのまま返却する。|\n|振込先口座情報オブジェクト|beneficiaryInfo|振込先となる口座情報|なし||\n|振込メモ|notes|振込時のメモ|(※1)|全角文字すべて※リクエストで指定した場合のみ、リクエスト時の値をそのまま返却する。|\n|入力金額|enteredAmount|リクエストで指定した振込金額|なし|0～999999999999|\n|振込金額|paymentAmount||なし|0～999999999999<br>◆手数料負担区分が1：当方負担の場合、<br>　入力金額と同値<br>◆手数料負担区分が2：相手先負担の場合、<br>　入力金額－先方負担手数料|\n|振込手数料（銀行宛支払手数料）|paymentCharge||なし|0～999999999999|\n|手数料負担区分|chargesPaidBy|振込手数料の負担先を識別するコード|なし|1：当方負担、2：相手先負担|\n|先方負担手数料|chargeToBeneficiary||(※1)|0～999999999999<br>※手数料負担区分に2：相手先負担を指定した場合のみ、返却する。|\n|振込依頼人番号|paymentApplicantNo||(※1)|半角数字 \"^(\\\\d{0,10})$\"<br>※リクエストで指定した場合のみ、リクエスト時の値をそのまま返却する。|\n|EDI情報|ediInfo||(※1)|全角数字、全角英字、全角カナ、許容記号2(※3)<br>※リクエストで指定した場合のみ、リクエスト時の値を返却する。|\n|振込ID|transferId||なし|半角数字 \"^(\\\\d{0,24})$\"|\n|ステータス|status||なし|\"booking\"：申請中|\n\n(※1) 次明細照会の指定がない場合、キー・値ともに返却しません。\n\n(※2) ￥「」（）／＊＆＄，．＠＝％＋；スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)の計21文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。\n\n(※3) ￥「」（）／．スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)の計12文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。"
+    },
+    "DebitAccountResponseInfo": {
+      "properties": {
+        "debitAccountBranchNo": {
+          "type": "string",
+          "description": "引落口座 支店番号",
+          "example": "001",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "debitAccountBranchName": {
+          "type": "string",
+          "description": "引落口座 支店名",
+          "example": "本店",
+          "minLength": 1,
+          "maxLength": 15
+        },
+        "debitAccountAccountTypeCode": {
+          "type": "string",
+          "description": "引落口座 科目コード（1：普通、2：当座、5：通知、6：定期）",
+          "example": "1",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "debitAccountAccountTypeName": {
+          "type": "string",
+          "description": "引落口座 科目名",
+          "example": "普通",
+          "minLength": 1,
+          "maxLength": 8
+        },
+        "debitAccountAccountNo": {
+          "type": "string",
+          "description": "引落口座 口座番号",
+          "example": "1111111",
+          "minLength": 7,
+          "maxLength": 7
+        },
+        "debitAccountNameKanji": {
+          "type": "string",
+          "description": "引落口座 口座名義",
+          "example": "普通口座株式会社",
+          "minLength": 1,
+          "maxLength": 71
+        },
+        "debitAccountNameKana": {
+          "type": "string",
+          "description": "引落口座 口座名義(カナ)",
+          "example": "フツウコウザカブシキカイシヤ",
+          "minLength": 1,
+          "maxLength": 71
+        }
+      },
+      "additionalProperties": false,
+      "description": "引落口座レスポンス情報オブジェクト\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|引落口座　支店番号|debitAccountBranchNo|引落元となる口座の支店番号|なし|半角数字 \"^(\\\\d{3})$\"|\n|引落口座　支店名|debitAccountBranchName|引落元となる口座の支店名|なし|全角文字すべて|\n|引落口座　科目コード|debitAccountAccountTypeCode|引落元となる口座の科目コード|なし|1：普通、2：当座、5：通知、6：定期<br>※ビジネスカードローン(BCL）は、1:普通預金が返却されます。|\n|引落口座　科目名|debitAccountAccountTypeName|引落元となる口座の科目名|なし|全角文字すべて<br>\"普通\"、\"当座\"、\"通知\"、\"定期\"、\"BCL\"|\n|引落元となる口座の口座番号|debitAccountAccountNo|引落元となる口座の口座番号|なし|半角数字 \"^(\\\\d{7})$\"|\n|引落口座　口座名義（漢字）|debitAccountNameKanji|引落元となる口座の口座名義<br>取引先名（漢字）＋付属取引先名（漢字）<br>取引先名（漢字）がないとき、取引先名（カナ）＋付属取引先名（カナ）<br>※全角スペースで連結して表示|なし|全角文字すべて|\n|引落口座　口座名義（カナ）|debitAccountNameKana|引落元となる口座の口座名義<br>取引先名（カナ）＋付属取引先名（カナ）<br>※全角スペースで連結して表示|なし|全角数字、全角英字、全角カナ、許容記号1(※1)|\n\n(※1) ￥「」（）／＊＆＄，．＠＝％＋；スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)\n\n　　の計21文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。"
+    },
+    "BeneficiaryAccountResponseInfo": {
+      "properties": {
+        "beneficiaryAccountFinancialInstitutionNo": {
+          "type": "string",
+          "description": "振込先 金融機関番号",
+          "example": "0005",
+          "minLength": 4,
+          "maxLength": 4
+        },
+        "beneficiaryAccountFinancialInstitutionName": {
+          "type": "string",
+          "description": "振込先 金融機関名",
+          "example": "三菱東京ＵＦＪ銀行",
+          "minLength": 1,
+          "maxLength": 15
+        },
+        "beneficiaryAccountBranchNo": {
+          "type": "string",
+          "description": "振込先 支店番号",
+          "example": "123",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "beneficiaryAccountBranchName": {
+          "type": "string",
+          "description": "振込先 支店名",
+          "example": "銀座",
+          "minLength": 1,
+          "maxLength": 15
+        },
+        "beneficiaryAccountTypeCode": {
+          "type": "string",
+          "description": "振込先 科目コード（1：普通、2：当座、4：貯蓄、5：通知、6：定期、9：その他）",
+          "example": "2",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "beneficiaryAccountTypeName": {
+          "type": "string",
+          "description": "振込先 科目名",
+          "example": "当座",
+          "minLength": 1,
+          "maxLength": 8
+        },
+        "beneficiaryAccountNo": {
+          "type": "string",
+          "description": "振込先 口座番号",
+          "example": "1234567",
+          "minLength": 1,
+          "maxLength": 7
+        },
+        "beneficiaryAccountNameKanji": {
+          "type": "string",
+          "description": "振込先 口座名義(漢字)",
+          "example": "銀座利用者０７",
+          "minLength": 1,
+          "maxLength": 25
+        },
+        "beneficiaryAccountNameKana": {
+          "type": "string",
+          "description": "振込先 口座名義(カナ)",
+          "example": "ギンザリヨウシャ０７",
+          "minLength": 1,
+          "maxLength": 48
+        }
+      },
+      "additionalProperties": false,
+      "description": "振込先口座レスポンス情報オブジェクト\n\n|日本語名|英字名|説明|Nullデータ|備考|\n|---|---|---|---|---|\n|振込先　金融機関番号|beneficiaryAccountFinancialInstitutionNo|振込先の金融機関番号|なし|半角数字 \"^(\\\\d{4})$\"|\n|振込先　金融機関名|beneficiaryAccountFinancialInstitutionName|振込先の金融機関名|なし|全角文字すべて|\n|振込先　支店番号|beneficiaryAccountBranchNo|振込先の支店番号|なし|半角数字 \"^(\\\\d{3})$\"|\n|振込先　支店名|beneficiaryAccountBranchName|振込先の支店名|なし|全角文字すべて|\n|振込先　科目コード|beneficiaryAccountTypeCode|振込先の科目コード|なし|1：普通、2：当座、4：貯蓄、<br>5：通知、6：定期、9：その他|\n|振込先　科目名|beneficiaryAccountTypeName|振込先の科目名|なし|全角文字すべて<br>\"普通\"、\"当座\"、\"貯蓄\"、\"通知\"、<br>\"定期\"、\"その他\"、\"BCL\"|\n|振込先　口座番号|beneficiaryAccountNo|振込先の口座番号|なし|半角数字 \"^(\\\\d{7})$\"<br>または全角数字。<br>※7桁未満の口座番号を指定した際は、以下のとおりとなります。<br>◆当行宛の場合<br>　BizSTATION側で先頭ゼロ詰めを行い7桁に揃え、振込申請処理を行う。<br>　　例：\"12345\"→\"0012345\"に補正<br>◆他行宛の場合<br>　BizSTATION側ではゼロ詰めは行わず、そのまま振込申請を行う<br>　　例：\"34567\"→\"34567\"　（補正なし）|\n|振込先　口座名義（漢字）|beneficiaryAccountNameKanji|振込先の口座名義|(※1)|全角文字すべて<br>※リクエストで指定した場合のみ、リクエスト時の値をそのまま返却する。|\n|振込先　口座名義（カナ）|beneficiaryAccountNameKana|振込先の口座名義|(※1)|全角数字、全角英字、全角カナ、許容記号1(※2)<br>※リクエストで指定した場合のみ、リクエスト時の値を返却する。|\n\n(※1) 次明細照会の指定がない場合、キー・値ともに返却しません。\n\n(※2) ￥「」（）／＊＆＄，．＠＝％＋；スペースー(カナ長音)－(ハイフン)―(２バイトの長い横棒)‐(２バイトの短い横棒)\n\n　　の計21文字になります。\n\n　　「ー、－、―、‐」については、全て「－(ハイフン)」に変換して処理されます。"
+    },
+    "ErrorResponse": {
+      "description": "エラーレスポンスオブジェクト\n\n|日本語名|英字名|説明|Nullデータ|\n|---|---|---|---|\n|ステータスコード|status|ステータスコード|(※1)|\n|メッセージ|message|ステータスコードに紐づくメッセージ|(※1)|\n|エラーコード|code|エラーコード|(※1)|\n|開発者向け詳細メッセージ|developer_message|開発者向けの詳細メッセージ|(※1)|\n\n|日本語名|英字名|説明|Nullデータ|\n|---|---|---|---|\n|httpステータスコード|httpCode|httpステータスコードと同値|(※1)|\n|httpステータスメッセージ|httpMessage|httpステータスコードの文字列|(※1)|\n|詳細メッセージ|moreInformation|開発者向けの詳細メッセージ|(※1)|\n\n\n|日本語名|英字名|説明|Nullデータ|\n|---|---|---|---|\n|エラー種別|error|エラーの種別を表す文字列|(※1)|\n|詳細メッセージ|error_description|開発者向けの詳細メッセージ|(※1)|\n\n\n\n(※1) 該当項目にて返却するデータがない場合、キー・値ともに返却しません",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "ステータスコード",
+          "type": "integer",
+          "format": "int32",
+          "example": 400,
+          "minimum": 100,
+          "maximum": 999
+        },
+        "message": {
+          "description": "ステータスコードに紐づくメッセージ",
+          "type": "string",
+          "example": "不正なパラメータ"
+        },
+        "code": {
+          "description": "エラーコード",
+          "type": "string",
+          "example": "ERR006"
+        },
+        "developer_message": {
+          "description": "開発者向け詳細メッセージ",
+          "type": "string",
+          "example": "指定した口座からは振込できません。"
+        },
+        "httpCode": {
+          "description": "httpステータスコード(httpステータスコードと同値)",
+          "type": "string",
+          "example": 404
+        },
+        "httpMessage": {
+          "description": "httpステータスメッセージ(httpステータスコードの文字列)",
+          "type": "string",
+          "example": "Not Found"
+        },
+        "moreInformation": {
+          "description": "詳細メッセージ(開発者向けの詳細メッセージ)",
+          "type": "string",
+          "example": "No resources match requested URI"
+        },
+        "error": {
+          "description": "エラー種別(エラーの種別を表す文字列)",
+          "type": "string",
+          "example": "invalid_grant"
+        },
+        "error_description": {
+          "description": "詳細メッセージ(開発者向けの詳細メッセージ)",
+          "type": "string",
+          "example": "client_id unauthorized"
+        }
+      }
+    },
+    "set_paymentDate": {
+      "type": "string",
+      "description": "内部処理用定義"
+    },
+    "set_date": {
+      "type": "string",
+      "description": "内部処理用定義"
+    },
+    "set_transactionid": {
+      "type": "string",
+      "description": "内部処理用定義"
+    },
+    "set_id": {
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false,
+      "description": "内部処理用定義"
+    },
+    "set_resourse": {
+      "type": "string",
+      "description": "内部処理用定義"
+    },
+    "tkn_mng_rsp": {
+      "properties": {
+        "CLID_UID_BRCD_SBCD_ACNO": {
+          "type": "string"
+        },
+        "CLIENTID": {
+          "type": "string"
+        },
+        "USERID": {
+          "type": "string"
+        },
+        "BRCOFC_CD": {
+          "type": "string"
+        },
+        "BRCOFC_NM": {
+          "type": "string"
+        },
+        "SUB_CD": {
+          "type": "string"
+        },
+        "SUB_NM": {
+          "type": "string"
+        },
+        "ACNT_NO": {
+          "type": "string"
+        },
+        "CTM_PSNM": {
+          "type": "string"
+        },
+        "CTM_NM": {
+          "type": "string"
+        },
+        "DPST_LDGR_BLNC": {
+          "type": "number",
+          "format": "double"
+        },
+        "FD_BLNC": {
+          "type": "number",
+          "format": "double"
+        },
+        "TDB_TRDT": {
+          "type": "string",
+          "format": "date"
+        },
+        "DB_DPST_LDGR_BLNC": {
+          "type": "string"
+        },
+        "BTE_TRDT": {
+          "type": "string",
+          "format": "date"
+        },
+        "TEPM_DPST_LDGR_BLNC": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "description": "内部処理用定義"
+    },
+    "tkn_mng": {
+      "properties": {
+        "debitAccountTypeName": {
+          "type": "string",
+          "description": "科目名"
+        },
+        "debitAccountBranchName": {
+          "type": "string",
+          "description": "支店名"
+        },
+        "debitAccountNameKana": {
+          "type": "string",
+          "description": "口座名義(カナ)"
+        },
+        "debitAccountNameKanji": {
+          "type": "string",
+          "description": "口座名義"
+        }
+      },
+      "additionalProperties": false,
+      "description": "内部処理用定義"
+    },
+    "PAY_MNG": {
+      "properties": {
+        "CLIENTID": {
+          "description": "クライアントID",
+          "type": "string"
+        },
+        "USERID": {
+          "description": "契約者番号",
+          "type": "string"
+        },
+        "PAY_DAY": {
+          "description": "取引指定日",
+          "type": "string",
+          "format": "date"
+        },
+        "OPE_DT": {
+          "description": "操作日時",
+          "type": "string",
+          "format": "date"
+        },
+        "SVC_STORE_NO": {
+          "description": "店番",
+          "type": "string"
+        },
+        "SVC_SUB_CD": {
+          "description": "科目ｺｰﾄﾞ",
+          "type": "string"
+        },
+        "SVC_DNS_ACNT_NO": {
+          "description": "口座番号",
+          "type": "string"
+        },
+        "SVC_ANT_CLT_NM": {
+          "description": "振込依頼人名（ｶﾅ）",
+          "type": "string"
+        },
+        "SVC_ANT_CLT_NO": {
+          "description": "振込依頼人番号",
+          "type": "string"
+        },
+        "SVC_EDI_INF": {
+          "description": "EDI情報",
+          "type": "string"
+        },
+        "PCH_ANT_CD1": {
+          "description": "振込先ｺｰﾄﾞ1",
+          "type": "string"
+        },
+        "PCH_ANT_CD2": {
+          "description": "振込先ｺｰﾄﾞ2",
+          "type": "string"
+        },
+        "PCH_BNK_CD": {
+          "description": "金融機関ｺｰﾄﾞ",
+          "type": "string"
+        },
+        "PCH_BNK_NM": {
+          "description": "正読銀行名(漢字)",
+          "type": "string"
+        },
+        "PCH_BRCOFC_CD": {
+          "description": "支店ｺｰﾄﾞ",
+          "type": "string"
+        },
+        "PCH_BRCOFC_NM": {
+          "description": "支店名（漢字）",
+          "type": "string"
+        },
+        "PCH_SUB_CD": {
+          "description": "科目ｺｰﾄﾞ",
+          "type": "string"
+        },
+        "PCH_SUB_NM": {
+          "description": "科目名称",
+          "type": "string"
+        },
+        "PCH_ACNT_NO": {
+          "description": "口座番号",
+          "type": "string"
+        },
+        "PCH_CTM_PSNM": {
+          "description": "取引先名（ｶﾅ）",
+          "type": "string"
+        },
+        "PCH_CTM_NM": {
+          "description": "取引先名（漢字）",
+          "type": "string"
+        },
+        "PCH_ANT_MEMO": {
+          "description": "メモ",
+          "type": "string"
+        },
+        "PCH_CRG_TYPE_CD": {
+          "description": "手数料負担区分",
+          "type": "string"
+        },
+        "PCH_PAYEE_CRG": {
+          "description": "先方負担手数料",
+          "type": "number",
+          "format": "double"
+        },
+        "PACH_PAYTAX_FEE": {
+          "description": "振込手数料",
+          "type": "number",
+          "format": "double"
+        },
+        "AMOUNT": {
+          "description": "振込入力金額",
+          "type": "number",
+          "format": "double"
+        },
+        "TRN_ID": {
+          "description": "振込申請ID",
+          "type": "string"
+        },
+        "id": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "description": "振込申請テーブル接続用定義"
+    }
+  },
+  "x-ibm-configuration": {
+    "enforced": true,
+    "testable": true,
+    "phase": "realized"
+  },
+  "x-ibm-endpoints": [
+    {
+      "endpointUrl": "https://developer.api.bk.mufg.jp",
+      "description": "Custom Gateway API Endpoint",
+      "type": [
+        "production",
+        "development"
+      ]
+    }
+  ]
+}
